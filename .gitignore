@@ -1,0 +1,17 @@
+# PlatformIO 构建产物
+.pio/
+
+# VSCode：只保留推荐插件列表，其余为自动生成或本机配置
+.vscode/*
+!.vscode/extensions.json
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# 采集数据
+captures/
+
+# 系统文件
+.DS_Store
