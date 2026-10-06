@@ -12,9 +12,9 @@ import unittest
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'host'))
-from heatmap import FrameReader, MAGIC
-from diagnostics import RawDiagnostics, frame_stats
-from diagnose import compare
+from common.frame_reader import FrameReader, MAGIC
+from common.diagnostics import RawDiagnostics, frame_stats
+from diagnose.diagnose import compare
 
 
 class FakePort:

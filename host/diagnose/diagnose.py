@@ -1,13 +1,16 @@
 """Headless binary raw diagnostic recorder and release/press comparison."""
 
 import argparse
+from pathlib import Path
+import sys
 import time
 
 import numpy as np
 import serial
 
-from diagnostics import RawDiagnostics
-from heatmap import FrameReader
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from common.diagnostics import RawDiagnostics
+from common.frame_reader import BAUD, COLS, FrameReader, check_mux_offset
 
 
 def load_recording(path):
@@ -50,7 +53,7 @@ def main():
     parser.add_argument("--compare", nargs=2, metavar=("RELEASED_NPZ", "PRESSED_NPZ"))
     parser.add_argument("--port")
     parser.add_argument("--rows", type=int, choices=(12, 16), default=16)
-    parser.add_argument("--baud", type=int, default=2_000_000)
+    parser.add_argument("--baud", type=int, default=BAUD)
     parser.add_argument("--mux-offset", type=int, default=None)
     parser.add_argument("--seconds", type=float, default=10, help="Record duration after first frame; 0 until Ctrl-C")
     parser.add_argument("--warmup", type=float, default=2, help="Ignore data during Nano reset and analog startup")
@@ -65,16 +68,14 @@ def main():
         parser.error("--port is required for live capture")
     if args.seconds < 0 or args.warmup < 0 or args.baud <= 0:
         parser.error("seconds/warmup must be nonnegative and baud positive")
-    offset = args.mux_offset if args.mux_offset is not None else (4 if args.rows == 12 else 0)
-    if not 0 <= offset <= 16 - args.rows:
-        parser.error("rows + mux-offset must fit 16 MUX channels")
+    offset = check_mux_offset(parser, args.rows, args.mux_offset)
     reader = None
-    diag = RawDiagnostics(args.rows, 32, offset, args.record, args.label, vars(args))
-    print(f"BINARY {args.rows}x32; frame={2+args.rows*32} bytes; mux={offset}..{offset+args.rows-1}; "
+    diag = RawDiagnostics(args.rows, COLS, offset, args.record, args.label, vars(args))
+    print(f"BINARY {args.rows}x{COLS}; frame={2+args.rows*COLS} bytes; mux={offset}..{offset+args.rows-1}; "
           f"label={args.label}. No GUI/calibration. Ctrl-C stops and saves.", flush=True)
     try:
         with serial.Serial(args.port, args.baud, timeout=0.02, exclusive=True) as port:
-            reader = FrameReader(port, args.rows, 32)
+            reader = FrameReader(port, args.rows, COLS)
             opened = last_frame = time.monotonic()
             capturing = False
             while True:
